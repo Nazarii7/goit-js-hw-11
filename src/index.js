@@ -8,3 +8,9 @@ const BASIC_URL = `https://pixabay.com/api/?key =${API_KEY}&q=`;
 const searchFields = '&image_type=photo&orientation=horizontal&safesearch=true';
 
 const imgBox = document.querySelector('.gallery');
+const refs = {
+    forM: document.querySelector('#search-form'),
+    loadMoreBtn: document.querySelector('.load-more'),
+    subMitBtn: document.querySelector('#submit');
+    input: document.querySelector('input')
+};
