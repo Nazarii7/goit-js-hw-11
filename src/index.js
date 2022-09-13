@@ -58,26 +58,92 @@ const newImgServ = new GetImages();
 
 function formSubmit(e) {
   refs.loadMoreBtn.disabled = true;
-    e.preventDefault();
-    const { searchQuery } = e.currentTarget;
-    newImgServ.query = searchQuery.value;
-    newImgServ.resetP();
-    newImgServ.getImg().then(data => renderImgC(data.hits));
+  e.preventDefault();
+  const { searchQuery } = e.currentTarget;
+  newImgServ.query = searchQuery.value;
+  newImgServ.resetP();
+  newImgServ.getImg().then(data => renderImgC(data.hits));
 }
 
 function onLoadMore() {
-    newImgServ.incrPage();
-    newImgServ.getImg().then(data => renderImgC(data.hits));
+  newImgServ.incrPage();
+  newImgServ.getImg().then(data => renderImgC(data.hits));
 }
 function subMitBtn(e) {
-    if (e.currentTarget.value) {
-        refs.subMitBtn.disabled = false;
-    }
+  if (e.currentTarget.value) {
+    refs.subMitBtn.disabled = false;
+  }
 }
 
-
 async function renderImgC(img) {
-    refs.loadMoreBtn.disabled = false;
-    const data = await newImgServ.getImg();
-    const allHits = data.
+  refs.loadMoreBtn.disabled = false;
+  const data = await newImgServ.getImg();
+  const allHits = data.hits.length;
+  const maxHits = data.totalH;
+
+  if (img.length === 0) {
+    Notify.failure(
+      'Sorry, there are no images matching your search query. Please try again.'
+    );
+    refs.loadMoreBtn.disabled = true;
+  }
+  const markup = img
+    .map(img => {
+      total += 1;
+
+      return `
+
+      <div class="photo-card">
+   <a href="${img.largeImageURL}">
+    <img src="${img.webformatURL}" alt="${img.tags}" loading="lazy"  class="gallery__image" />
+    </a>
+    <div class="info">
+      <p class="info-item">
+        <b>Likes </b><span>${img.likes}</span>
+      </p>
+      <p class="info-item">
+        <b>Views </b><span>${img.views}</span>
+      </p>
+      <p class="info-item">
+        <b>Comments </b><span>${img.comments}</span>
+      </p>
+      <p class="info-item">
+        <b>Downloads </b><span>${img.downloads}</span>
+      </p>
+    </div>
+  </div>`;
+    })
+    .join('');
+  total -= 1;
+  if (total < 21) {
+    refs.loadMoreBtn.disabled = true;
+    Notify.failure(
+      "We're sorry, but you've reached the end of search results."
+    );
+  }
+
+  notification(total, maxHits);
+  total = 1;
+  if (newImgServ.page === 1) {
+    imgBox.innerHTML = markup;
+  }
+  if (newImgServ.page !== 1) {
+    imgBox.insertAdjacentHTML('beforeend', markup);
+  }
+  modListener();
+}
+function modListener() {
+  let galleryLarge = new simpleLightbox('.photo-card a');
+  imgBox.addEventListener('click', e => {
+    e.preventDefault();
+    galleryLarge.on('show.simplelighybox', () => {
+      galleryLarge.defaultOptions.captionDelay = 250;
+    });
+  });
+  galleryLarge.refresh();
+}
+function notification(totalImg, totalHits) {
+  if (newImgServ.page > 1 && totalImg === 21) {
+    Notify.success(`Hooray! We found ${totalHits} images.`);
+  }
 }
