@@ -7,18 +7,17 @@ const API_KEY = '29781225-270ed18ae1ae383a725fedf91';
 const BASIC_URL = `https://pixabay.com/api/?key=${API_KEY}&q=`;
 const searchFields = '&image_type=photo&orientation=horizontal&safesearch=true';
 
-const imgBox = document.querySelector('.gallery');
+const cardBox = document.querySelector('.gallery');
 const refs = {
-  forM: document.querySelector('#search-form'),
+  form: document.querySelector('#search-form'),
   loadMoreBtn: document.querySelector('.load-more'),
-  subMitBtn: document.querySelector('#submit'),
+  submitBtn: document.querySelector('#submit'),
   input: document.querySelector('input'),
 };
-
-refs.forM.addEventListener('submit', formSubmit);
+refs.form.addEventListener('submit', formSubmit);
 refs.loadMoreBtn.addEventListener('click', onLoadMore);
 refs.input.addEventListener('input', submitButton);
-refs.loadMoreBtn = true;
+refs.loadMoreBtn.disabled = true;
 let total = 1;
 
 class GetImages {
@@ -27,8 +26,8 @@ class GetImages {
     this.page = 1;
     this.newQuery = '';
   }
-  async getImg() {
-    refs.subMitBtn.disabled = true;
+  async getImages() {
+    refs.submitBtn.disabled = true;
     const serverDataURL = `${BASIC_URL}${this.searchQuery}${searchFields}&page=${this.page}&per_page=21`;
     try {
       const server = await axios.get(serverDataURL);
@@ -38,61 +37,59 @@ class GetImages {
     } catch (error) {}
   }
 
-  resetP() {
+  resetPage() {
     this.page = 1;
   }
 
   get query() {
     return this.searchQuery;
   }
-
   set query(newQuery) {
     this.searchQuery = newQuery;
   }
-  incrPage() {
+  incrementPage() {
     this.page += 1;
   }
 }
+const newImgService = new GetImages();
 
-const newImgServ = new GetImages();
-
-function formSubmit(e) {
+function formSubmit(evt) {
   refs.loadMoreBtn.disabled = true;
-  e.preventDefault();
-  const { searchQuery } = e.currentTarget;
-  newImgServ.query = searchQuery.value;
-  newImgServ.resetP();
-  newImgServ.getImg().then(data => renderImgC(data.hits));
+  evt.preventDefault();
+  const { searchQuery } = evt.currentTarget;
+  newImgService.query = searchQuery.value;
+  newImgService.resetPage();
+  newImgService.getImages().then(data => renderImgCards(data.hits));
 }
 
 function onLoadMore() {
-  newImgServ.incrPage();
-  newImgServ.getImg().then(data => renderImgC(data.hits));
+  newImgService.incrementPage();
+  newImgService.getImages().then(data => renderImgCards(data.hits));
 }
-function submitButton(e) {
-  if (e.currentTarget.value) {
-    refs.subMitBtn.disabled = false;
+function submitButton(evt) {
+  if (evt.currentTarget.value) {
+    refs.submitBtn.disabled = false;
   }
 }
 
-async function renderImgC(img) {
+async function renderImgCards(images) {
   refs.loadMoreBtn.disabled = false;
-  const data = await newImgServ.getImg();
+  const data = await newImgService.getImages();
   const allHits = data.hits.length;
-  const maxHits = data.totalH;
+  const maxHits = data.totalHits;
 
-  if (img.length === 0) {
+  if (images.length === 0) {
     Notify.failure(
       'Sorry, there are no images matching your search query. Please try again.'
     );
     refs.loadMoreBtn.disabled = true;
   }
-  const markup = img
+  const markup = images
     .map(img => {
       total += 1;
 
-      return `
-
+      return ` 
+      
       <div class="photo-card">
    <a href="${img.largeImageURL}">
     <img src="${img.webformatURL}" alt="${img.tags}" loading="lazy"  class="gallery__image" />
@@ -124,27 +121,26 @@ async function renderImgC(img) {
 
   notification(total, maxHits);
   total = 1;
-  if (newImgServ.page === 1) {
-    imgBox.innerHTML = markup;
+  if (newImgService.page === 1) {
+    cardBox.innerHTML = markup;
   }
-  if (newImgServ.page !== 1) {
-    imgBox.insertAdjacentHTML('beforeend', markup);
+  if (newImgService.page !== 1) {
+    cardBox.insertAdjacentHTML('beforeend', markup);
   }
-  modListener();
+  modalListener();
 }
-function modListener() {
+function modalListener() {
   let galleryLarge = new SimpleLightbox('.photo-card a');
-  imgBox.addEventListener('click', e => {
-    e.preventDefault();
+  cardBox.addEventListener('click', evt => {
+    evt.preventDefault();
     galleryLarge.on('show.simplelightbox', () => {
       galleryLarge.defaultOptions.captionDelay = 250;
     });
   });
   galleryLarge.refresh();
 }
-
 function notification(totalImg, totalHits) {
-  if (newImgServ.page > 1 && totalImg === 21) {
+  if (newImgService.page > 1 && totalImg === 21) {
     Notify.success(`Hooray! We found ${totalHits} images.`);
   }
 }
